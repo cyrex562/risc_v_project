@@ -11,7 +11,8 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     python3 \
     python3-pip \
-    qemu \
+    python3-venv \
+    qemu-system \
     gdb-multiarch \
     git \
     clang \
@@ -28,14 +29,19 @@ RUN rustup update && rustup component add rustfmt clippy llvm-tools-preview
 # Install useful Rust crates globally
 RUN cargo install cargo-watch cargo-audit
 
-# Set up Python virtual environment for scripting
-RUN python3 -m pip install --upgrade pip \
-    && pip3 install meson pyelftools numpy
-
 # Create the non-root user
 RUN groupadd --gid $USER_GID $USERNAME \
     && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME \
     && chown -R $USERNAME:$USERNAME /home/$USERNAME
 
 USER $USERNAME
+
+# Set up virtual environment
+RUN python3 -m venv /home/$USERNAME/.venv \
+    && /home/$USERNAME/.venv/bin/pip install --upgrade pip \
+    && /home/$USERNAME/.venv/bin/pip install meson pyelftools numpy
+
+# Make venv activate by default in all terminals
+RUN echo 'source ~/.venv/bin/activate' >> /home/$USERNAME/.bashrc
+
 WORKDIR /workspaces
